@@ -11,6 +11,6 @@
   "password": "myPassword",
   "server": "test.mosquitto.org",
   "port": 1883,
-  "ssl": false
+  "tls": false
   }
 }

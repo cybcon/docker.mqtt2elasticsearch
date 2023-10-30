@@ -44,7 +44,6 @@ Inside this file we need to configure the Elasticsearch and MQTT server connecti
 {
 "DEBUG": true,
 "removeIndex": false,
-"local_timezone": "Europe/Berlin",
 "elasticsearch": {
   "cluster": [ "http://elasticsearch:9200/" ]
   },
@@ -54,7 +53,7 @@ Inside this file we need to configure the Elasticsearch and MQTT server connecti
   "password": "myPassword",
   "server": "test.mosquitto.org",
   "port": 1883,
-  "ssl": false
+  "tls": false
   }
 }
 ```
@@ -65,7 +64,6 @@ Inside this file we need to configure the Elasticsearch and MQTT server connecti
 |-------------------------|---------|------------------------------------------------------------------------------------------------------------------|
 | `DEBUG`                 | Boolean | Enable debug output on stdout                                                                                    |
 | `removeIndex`           | Boolean | If this flag is set to `true`, the script will remove the Elasticsearch index and exits.                         |
-| `local_timezone`        | String  | The timezone identifier. See also here [Wikipedia](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) |
 | `elasticsearch`         | Object  | Contains Elasticsearch specific configuration parameters.                                                        |
 | `elasticsearch.cluster` | Array   | Contains a list of Eleasticsearch cluster node URLs.                                                             |
 | `mqtt`                  | Object  | Contains MQTT specific configuration parameters.                                                                 |
@@ -74,7 +72,7 @@ Inside this file we need to configure the Elasticsearch and MQTT server connecti
 | `mqtt.password`         | String  | The password to authenticate to the MQTT server.                                                                 |
 | `mqtt.server`           | String  | IP address or FQDN of the MQTT server.                                                                           |
 | `mqtt.port`             | String  | The TCP port number of the MQTT server.                                                                          |
-| `mqtt.ssl`              | Boolean | If a TLS encrpted communication should be established or not.                                                    |
+| `mqtt.tls`              | Boolean | If a TLS encrpted communication should be established or not.                                                    |
 
 
 ##  Elasticsearch index configuration file
