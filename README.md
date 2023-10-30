@@ -8,7 +8,8 @@ Container image: [DockerHub](https://hub.docker.com/repository/docker/oitc/mqtt2
 
 # Supported tags and respective `Dockerfile` links
 
-* [`latest`, `1.0.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
+* [`latest`, `1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
+* [`1.0.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
 
 # Summary
 
@@ -53,26 +54,30 @@ Inside this file we need to configure the Elasticsearch and MQTT server connecti
   "password": "myPassword",
   "server": "test.mosquitto.org",
   "port": 1883,
-  "tls": false
+  "tls": false,
+  "hostname_validation": true,
+  "protocol_version": 3
   }
 }
 ```
 
 ### Field description
 
-| Field                   | Type    | Description                                                                                                      |
-|-------------------------|---------|------------------------------------------------------------------------------------------------------------------|
-| `DEBUG`                 | Boolean | Enable debug output on stdout                                                                                    |
-| `removeIndex`           | Boolean | If this flag is set to `true`, the script will remove the Elasticsearch index and exits.                         |
-| `elasticsearch`         | Object  | Contains Elasticsearch specific configuration parameters.                                                        |
-| `elasticsearch.cluster` | Array   | Contains a list of Eleasticsearch cluster node URLs.                                                             |
-| `mqtt`                  | Object  | Contains MQTT specific configuration parameters.                                                                 |
-| `mqtt.client_id`        | String  | The MQTT client identifier.                                                                                      |
-| `mqtt.user`             | String  | The username to authenticate to the MQTT server.                                                                 |
-| `mqtt.password`         | String  | The password to authenticate to the MQTT server.                                                                 |
-| `mqtt.server`           | String  | IP address or FQDN of the MQTT server.                                                                           |
-| `mqtt.port`             | String  | The TCP port number of the MQTT server.                                                                          |
-| `mqtt.tls`              | Boolean | If a TLS encrpted communication should be established or not.                                                    |
+| Field                      | Type    | Description                                                                                                      |
+|----------------------------|---------|------------------------------------------------------------------------------------------------------------------|
+| `DEBUG`                    | Boolean | Enable debug output on stdout                                                                                    |
+| `removeIndex`              | Boolean | If this flag is set to `true`, the script will remove the Elasticsearch index and exits.                         |
+| `elasticsearch`            | Object  | Contains Elasticsearch specific configuration parameters.                                                        |
+| `elasticsearch.cluster`    | Array   | Contains a list of Eleasticsearch cluster node URLs.                                                             |
+| `mqtt`                     | Object  | Contains MQTT specific configuration parameters.                                                                 |
+| `mqtt.client_id`           | String  | The MQTT client identifier.                                                                                      |
+| `mqtt.user`                | String  | The username to authenticate to the MQTT server.                                                                 |
+| `mqtt.password`            | String  | The password to authenticate to the MQTT server.                                                                 |
+| `mqtt.server`              | String  | IP address or FQDN of the MQTT server.                                                                           |
+| `mqtt.port`                | String  | The TCP port number of the MQTT server.                                                                          |
+| `mqtt.tls`                 | Boolean | If a TLS encrpted communication should be established or not.                                                    |
+| `mqtt.hostname_validation` | Boolean | Validate the hostname from the servercertificate or not.                                                         |
+| `mqtt.protocol_version`    | Integer | The MQTT protocol version. Can be 3 (for MQTTv311) or 5 (for MQTTv5).                                            |
 
 
 ##  Elasticsearch index configuration file
