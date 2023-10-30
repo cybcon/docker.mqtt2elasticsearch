@@ -8,7 +8,7 @@ Container image: [DockerHub](https://hub.docker.com/repository/docker/oitc/mqtt2
 
 # Supported tags and respective `Dockerfile` links
 
-* [`latest`, `1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
+* [`latest`, `1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.0/Dockerfile)
 * [`1.0.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
 
 # Summary
