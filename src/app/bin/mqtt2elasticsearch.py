@@ -16,7 +16,7 @@ import paho.mqtt.client as mqtt
 from datetime import datetime
 from elasticsearch import Elasticsearch
 
-VERSION='1.0.1'
+VERSION='1.1.0'
 
 CONFIG_FILE='/app/etc/mqtt2elasticsearch.json'
 if 'CONFIG_FILE' in os.environ:
