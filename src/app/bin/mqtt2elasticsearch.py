@@ -11,11 +11,12 @@ import os
 import sys
 import json
 import logging
+import ssl
 import paho.mqtt.client as mqtt
 from datetime import datetime
 from elasticsearch import Elasticsearch
 
-VERSION='1.0.0'
+VERSION='1.1.0'
 
 CONFIG_FILE='/app/etc/mqtt2elasticsearch.json'
 if 'CONFIG_FILE' in os.environ:
@@ -26,6 +27,7 @@ ELASTICSEARCH_MAPPING_FILE='/app/etc/mqtt2elasticsearch-mappings.json'
 if 'ELASTICSEARCH_MAPPING_FILE' in os.environ:
   ELASTICSEARCH_MAPPING_FILE=os.environ['ELASTICSEARCH_MAPPING_FILE']
 with open(ELASTICSEARCH_MAPPING_FILE) as f: topic2index = json.load(f)
+
 
 """
 ###############################################################################
@@ -191,19 +193,38 @@ if not 'mqtt' in CONFIG:
   log.error('MQTT specific configuration is missing in {}'.format(ELASTICSEARCH_MAPPING_FILE))
 if not 'tls' in CONFIG['mqtt']:
   CONFIG['mqtt']['tls']=False
+if not 'client_id' in CONFIG['mqtt']:
+  CONFIG['mqtt']['client_id']=None
+if not 'hostname_validation' in CONFIG['mqtt']:
+  CONFIG['mqtt']['hostname_validation']=True
+if not 'protocol_version' in CONFIG['mqtt']:
+  CONFIG['mqtt']['protocol_version']=3
 
 #------------------------------------------------------------------------------
 es = Elasticsearch(CONFIG['elasticsearch']['cluster'])
 
-client = mqtt.Client(client_id=CONFIG['mqtt']['client_id'], clean_session=True, userdata=None)
+log.debug('Configure MQTT client:')
+log.debug('- client_id={}'.format(CONFIG['mqtt']['client_id']))
+log.debug('- transport=tcp')
+if CONFIG['mqtt']['protocol_version'] == 5:
+  log.debug('- protocol=MQTTv5')
+  client = mqtt.Client(client_id=CONFIG['mqtt']['client_id'], userdata=None, transport='tcp', protocol=mqtt.MQTTv5)
+else:
+  log.debug('- clean_session=True')
+  log.debug('- protocol=MQTTv5')
+  client = mqtt.Client(client_id=CONFIG['mqtt']['client_id'], clean_session=True, userdata=None, transport='tcp', protocol=mqtt.MQTTv311)
 
 if 'user' in CONFIG['mqtt'] and CONFIG['mqtt']['user'] != '' and 'password' in CONFIG['mqtt'] and CONFIG['mqtt']['password'] != '':
-  log.debug('Set username and password for MQTT connection')
+  log.debug('Set username ({}) and password for MQTT connection'.format(CONFIG['mqtt']['user']))
   client.username_pw_set(CONFIG['mqtt']['user'], password=CONFIG['mqtt']['password'])
 
 if CONFIG['mqtt']['tls']:
   log.debug('MQTT connection is TLS encrypted')
-  client.tls_set()
+  client.tls_set(ca_certs=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS, ciphers=None)
+  if CONFIG['mqtt']['hostname_validation']:
+    client.tls_insecure_set(False)
+  else:
+    client.tls_insecure_set(True)
 
 # initial creation of elasticsearch index
 for key, value in topic2index.items():
@@ -214,6 +235,9 @@ for key, value in topic2index.items():
 # register MQTT callback functions
 client.on_connect = on_connect
 client.on_message = on_message
+
+# connect to MQTT server
+log.debug('Connecting to MQTT server {}:{}'.format(CONFIG['mqtt']['server'], CONFIG['mqtt']['port']))
 client.connect(CONFIG['mqtt']['server'], CONFIG['mqtt']['port'], 60)
 
 # Blocking call that processes network traffic, dispatches callbacks and
