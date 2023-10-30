@@ -1,0 +1,7 @@
+{
+  "de/oberdorf-itc/some/topic": {
+    "elasticIndex": "mydata-{Y}-{m}",
+    "elasticBody": {
+    }
+  }
+}

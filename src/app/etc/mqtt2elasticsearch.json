@@ -1,0 +1,16 @@
+{
+"DEBUG": true,
+"removeIndex": false,
+"local_timezone": "Europe/Berlin",
+"elasticsearch": {
+  "cluster": [ "http://elasticsearch:9200/" ]
+  },
+"mqtt": {
+  "client_id": "mqtt2elasticsearch",
+  "user": "mqtt2elasticsearch",
+  "password": "myPassword",
+  "server": "test.mosquitto.org",
+  "port": 1883,
+  "tls": false
+  }
+}
