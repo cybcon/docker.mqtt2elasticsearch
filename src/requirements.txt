@@ -1,2 +1,2 @@
-paho-mqtt==1.6.1
-elasticsearch8=8.10.1
+paho-mqtt >= 1.6.1, < 2.*
+elasticsearch >= 8.10, < 9.*

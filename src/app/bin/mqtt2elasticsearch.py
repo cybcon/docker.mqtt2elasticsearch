@@ -64,7 +64,7 @@ def createElasticsearchIndex(index: str, body: dict):
   index = prepareElasticsearchIndex(index)
 
   if not es.indices.exists(index=index):
-    log.debug('Creating elasticsearch index: {}{}'.format(CONFIG['elasticsearch']['cluster'][0], index)
+    log.debug('Creating elasticsearch index: {}{}'.format(CONFIG['elasticsearch']['cluster'][0], index))
     log.debug('  {}'.format(body))
     es.indices.create(index=index, body=body)
   else:
@@ -140,7 +140,7 @@ def on_message(client, userdata, msg):
   """
 
   log.debug('MQTT message received:')
-  log.debug(- userdata: {}'.format(userdata))
+  log.debug('- userdata: {}'.format(userdata))
 
   # prepare index
   index = prepareElasticsearchIndex(topic2index[msg.topic]['elasticIndex'])

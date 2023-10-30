@@ -112,8 +112,13 @@ A full blown example can be found here: [speedtest2mqtt-elasticsearch-mapping.js
 | *<topic>*.`elasticBody`  | Object | The Elastic index configuration as documented here: [Create index API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) |
 
 
+# Running the container image
 
-## Docker compose configuration
+```
+docker run --rm oitc/mqtt2elasticsearch:latest
+```
+
+# Docker compose configuration
 
 ```yaml
 version: '3.8'
