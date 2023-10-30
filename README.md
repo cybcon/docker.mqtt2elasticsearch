@@ -105,11 +105,11 @@ A full blown example can be found here: [speedtest2mqtt-elasticsearch-mapping.js
 
 ### Field description
 
-| Field                    | Type   | Description |
-|--------------------------|--------|-------------|
-| *<topic>*                | String | The MQTT topic to subscripe to                                                                                                                                    |
-| *<topic>*.`elasticIndex` | String | The name of the Elasticsearch index. Allowed placeholders are `{Y}` (year), `{m}` (month) and `{d}` (day)                                                         |
-| *<topic>*.`elasticBody`  | Object | The Elastic index configuration as documented here: [Create index API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) |
+| Field                      | Type   | Description |
+|----------------------------|--------|-------------|
+| *\<topic\>*                | String | The MQTT topic to subscripe to                                                                                                                                    |
+| *\<topic\>*.`elasticIndex` | String | The name of the Elasticsearch index. Allowed placeholders are `{Y}` (year), `{m}` (month) and `{d}` (day)                                                         |
+| *\<topic\>*.`elasticBody`  | Object | The Elastic index configuration as documented here: [Create index API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) |
 
 
 # Running the container image
