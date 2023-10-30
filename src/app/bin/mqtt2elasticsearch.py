@@ -106,7 +106,7 @@ def on_connect(client, userdata, flags, rc):
   @param userdata, any: user defined data of any type that is passed as the userdata
      parameter to callbacks. Defined within the Client() constructor.
   @param flags, dict(): JsonString, connection parameters
-  @param rc, int(): the return code  
+  @param rc, int(): the return code
   @return: None
   """
 
@@ -115,7 +115,7 @@ def on_connect(client, userdata, flags, rc):
   log.debug('- flags: {}'.format(flags))
   log.debug('- rc: {}'.format(rc))
 
-  # check for return code    
+  # check for return code
   if rc!=0:
     log.error('Error in connecting to MQTT Server, RC={}'.format(rc))
     sys.exit(1)
@@ -148,7 +148,7 @@ def on_message(client, userdata, msg):
   # check if index exist, if not trigger creation
   if not es.indices.exists(index=index):
     createElasticsearchIndex(index, topic2index[msg.topic]['elasticBody']);
-    
+
   # parse message payload as JSON object
   PAYLOAD = json.loads(str(msg.payload.decode("utf-8")))
 
