@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    restart: always
+    image: elasticsearch:8.10.2
+    container_name: elasticsearch
+    hostname: elasticsearch
+    environment:
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+    volumes:
+      - /srv/docker/elasticsearch/data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:9200", "-O-"]
+      interval: 1s
+      timeout: 1s
+      retries: 120
+
+  kibana:
+    restart: always
+    image: kibana:8.10.2
+    container_name: kibana
+    hostname: kibana
+    ports:
+      - 5601:5601
+    volumes:
+      - /srv/docker/kibana/etc:/usr/share/kibana/config
+    depends_on:
+      - elasticsearch
+
+  mqtt2elasticsearch:
+    restart: always
+    image: oitc/mqtt2elasticsearch
+    container_name: mqtt2elasticsearch
+    hostname: mqtt2elasticsearch
+    depends_on:
+      - elasticsearch
