@@ -1,0 +1,55 @@
+{
+  "de/oberdorf-itc/speedtest2mqtt": {
+    "elasticIndex": "speedtest-{Y}-{m}",
+    "elasticBody": {
+      "settings": {
+        "index": {
+          "number_of_shards": 5,
+          "number_of_replicas": 0
+        }
+      },
+      "mappings": {
+        "properties": {
+          "download": { "type": "float" },
+          "upload": { "type": "float" },
+          "ping": { "type": "float" },
+          "server": {
+            "type": "nested",
+            "properties": {
+              "url": { "type": "text" },
+              "lat": { "type": "keyword" },
+              "lon": { "type": "keyword" },
+              "name": { "type": "keyword" },
+              "country": { "type": "keyword" },
+              "cc": { "type": "keyword" },
+              "sponsor": { "type": "keyword" },
+              "id": { "type": "keyword" },
+              "host": { "type": "keyword" },
+              "d": { "type": "float" },
+              "latency": { "type": "float" }
+            }
+          },
+          "timestamp": { "type": "date" },
+          "bytes_sent": { "type": "integer" },
+          "bytes_received": { "type": "integer" },
+          "share": { "type": "text" },
+          "client": {
+            "type": "nested",
+            "properties": {
+              "ip": { "type": "ip" },
+              "lat": { "type": "keyword" },
+              "lon": { "type": "keyword" },
+              "isp": { "type": "keyword" },
+              "isprating": { "type": "keyword" },
+              "rating": { "type": "keyword" },
+              "ispdlavg": { "type": "keyword" },
+              "ispulavg": { "type": "keyword" },
+              "loggedin": { "type": "keyword" },
+              "country": { "type": "keyword" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
