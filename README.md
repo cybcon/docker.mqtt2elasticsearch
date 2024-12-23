@@ -6,9 +6,25 @@ Source code: [GitHub](https://github.com/cybcon/docker.mqtt2elasticsearch)
 
 Container image: [DockerHub](https://hub.docker.com/repository/docker/oitc/mqtt2elasticsearch)
 
+<!-- SHIELD GROUP -->
+[![][github-action-test-shield]][github-action-test-link]
+[![][github-action-release-shield]][github-action-release-link]
+[![][github-release-shield]][github-release-link]
+[![][github-releasedate-shield]][github-releasedate-link]
+[![][github-stars-shield]][github-stars-link]
+[![][github-forks-shield]][github-forks-link]
+[![][github-issues-shield]][github-issues-link]
+[![][github-license-shield]][github-license-link]
+
+[![][docker-release-shield]][docker-release-link]
+[![][docker-pulls-shield]][docker-pulls-link]
+[![][docker-stars-shield]][docker-stars-link]
+[![][docker-size-shield]][docker-size-link]
+
 # Supported tags and respective `Dockerfile` links
 
-* [`latest`, `1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.0/Dockerfile)
+* [`latest`, `1.1.1`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.1/Dockerfile)
+* [`1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.0/Dockerfile)
 * [`1.0.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
 
 # Summary
@@ -206,7 +222,7 @@ I would appreciate a small donation to support the further development of my ope
 
 # License
 
-Copyright (c) 2023 Michael Oberdorf IT-Consulting
+Copyright (c) 2023-2024 Michael Oberdorf IT-Consulting
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -225,3 +241,30 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+<!-- LINK GROUP -->
+[docker-pulls-link]: https://hub.docker.com/r/oitc/mqtt2elasticsearch
+[docker-pulls-shield]: https://img.shields.io/docker/pulls/oitc/mqtt2elasticsearch?color=45cc11&labelColor=black&style=flat-square
+[docker-release-link]: https://hub.docker.com/r/oitc/mqtt2elasticsearch
+[docker-release-shield]: https://img.shields.io/docker/v/oitc/mqtt2elasticsearch?color=369eff&label=docker&labelColor=black&logo=docker&logoColor=white&style=flat-square
+[docker-size-link]: https://hub.docker.com/r/oitc/mqtt2elasticsearch
+[docker-size-shield]: https://img.shields.io/docker/image-size/oitc/mqtt2elasticsearch?color=369eff&labelColor=black&style=flat-square
+[docker-stars-link]: https://hub.docker.com/r/oitc/mqtt2elasticsearch
+[docker-stars-shield]: https://img.shields.io/docker/stars/oitc/mqtt2elasticsearch?color=45cc11&labelColor=black&style=flat-square
+[github-action-release-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/release-from-label.yaml
+[github-action-release-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/release-from-label.yaml?label=release&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
+[github-action-test-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/container-image-build-validation.yaml
+[github-action-test-shield-original]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/container-image-build-validation.yaml/badge.svg
+[github-action-test-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/test.yaml?label=tests&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
+[github-forks-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/network/members
+[github-forks-shield]: https://img.shields.io/github/forks/cybcon/docker.mqtt2elasticsearch?color=8ae8ff&labelColor=black&style=flat-square
+[github-issues-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/issues
+[github-issues-shield]: https://img.shields.io/github/issues/cybcon/docker.mqtt2elasticsearch?color=ff80eb&labelColor=black&style=flat-square
+[github-license-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/blob/main/LICENSE
+[github-license-shield]: https://img.shields.io/badge/license-MIT-blue?labelColor=black&style=flat-square
+[github-release-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/releases
+[github-release-shield]: https://img.shields.io/github/v/release/cybcon/docker.mqtt2elasticsearch?color=369eff&labelColor=black&logo=github&style=flat-square
+[github-releasedate-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/releases
+[github-releasedate-shield]: https://img.shields.io/github/release-date/cybcon/docker.mqtt2elasticsearch?labelColor=black&style=flat-square
+[github-stars-link]: https://github.com/cybcon/docker.mqtt2elasticsearch
+[github-stars-shield]: https://img.shields.io/github/stars/cybcon/docker.mqtt2elasticsearch?color=ffcb47&labelColor=black&style=flat-square
