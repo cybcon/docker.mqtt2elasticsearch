@@ -255,7 +255,7 @@ SOFTWARE.
 [github-action-release-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/release-from-label.yaml?label=release&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
 [github-action-test-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/container-image-build-validation.yaml
 [github-action-test-shield-original]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/container-image-build-validation.yaml/badge.svg
-[github-action-test-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/test.yaml?label=tests&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
+[github-action-test-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/container-image-build-validation.yaml?label=tests&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
 [github-forks-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/network/members
 [github-forks-shield]: https://img.shields.io/github/forks/cybcon/docker.mqtt2elasticsearch?color=8ae8ff&labelColor=black&style=flat-square
 [github-issues-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/issues
