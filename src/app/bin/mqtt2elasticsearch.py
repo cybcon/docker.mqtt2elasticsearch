@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """ ***************************************************************************
 mqtt2elasticsearch.py - a tool that subscribes to mqtt topics and writes the
-  messages to an Elasticsearch database
+  messages to an Elasticsearch or to an Opensearch database
 Author: Michael Oberdorf
 Date: 2019-03-14
 Last modified by: Michael Oberdorf
-Last changed at: 2024-12-23
+Last modified at: 2025-03-10
 *************************************************************************** """
 import json
 import logging
@@ -16,8 +16,9 @@ from datetime import datetime
 
 import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
+from opensearchpy import OpenSearch
 
-VERSION = "1.1.1"
+VERSION = "1.2.0"
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:
@@ -39,12 +40,12 @@ with open(ELASTICSEARCH_MAPPING_FILE) as f:
 """
 
 
-def prepareElasticsearchIndex(index: str) -> str:
+def prepareIndexName(index: str) -> str:
     """
-    prepareElasticsearchIndex
-    @desc: replace tokens in elasticsearch index name
-    @param: index, str(): The Elasticsearch index name with placeholders
-    @return: str(): The resolved Elasticsearch index name
+    prepareIndexName
+    @desc: replace tokens in index name
+    @param: index, str(): The index name with placeholders
+    @return: str(): The resolved index name
     """
 
     elasticIndex = (
@@ -54,50 +55,57 @@ def prepareElasticsearchIndex(index: str) -> str:
     )
 
     if index != elasticIndex:
-        log.debug("Replacing placeholders in Elasticsearch index name:")
+        log.debug("Replacing placeholders in index name:")
         log.debug("  OLD: {}".format(index))
         log.debug("  NEW: {}".format(elasticIndex))
 
     return elasticIndex
 
 
-def createElasticsearchIndex(index: str, body: dict):
+def createIndex(index: str, body: dict):
     """
-    createElasticsearchIndex
-    @desc: creates a new index in Elasticsearch DB if not exist
-    @param index, str(): Elasticsearch index name
-    @param body, dict(): Elasticsearch index settings and mappings
+    createIndex
+    @desc: creates a new index in DB if not exist
+    @param index, str(): index name
+    @param body, dict(): index settings and mappings
     @return: None
     """
 
-    index = prepareElasticsearchIndex(index)
+    index = prepareIndexName(index)
 
     if not es.indices.exists(index=index):
-        log.debug("Creating elasticsearch index: {}{}".format(CONFIG["elasticsearch"]["cluster"][0], index))
-        log.debug("  {}".format(body))
+        host_port = ""
+        if isElasticsearch:
+            host_port = CONFIG["elasticsearch"]["cluster"][0]
+        elif isOpensearch:
+            host_port = (
+                CONFIG["opensearch"]["hosts"][0]["host"] + ":" + str(CONFIG["opensearch"]["hosts"][0]["port"]) + "/"
+            )
+        log.debug(f"Creating index: {host_port}{index}")
+        log.debug(f"  {body}")
         es.indices.create(index=index, body=body)
     else:
-        log.debug("Skip creation of elasticsearch Index, because it already exists.")
+        log.debug("Skip creation of opensearch Index, because it already exists.")
 
     return None
 
 
-def removeElasticsearchIndex(index: str, exitAfterRemoval: bool = True):
+def removeIndex(index: str, exitAfterRemoval: bool = True):
     """
-    removeElasticsearchIndex
-    @desc: removes an index in Elasticsearch DB if exist
-    @param index, str(): Elasticsearch index name
+    removeIndex
+    @desc: removes an index in DB if exist
+    @param index, str(): index name
     @param exitAfterRemoval, bool(): Exit after removing index (default: True)
     @return: None
     """
 
-    index = prepareElasticsearchIndex(index)
+    index = prepareIndexName(index)
 
     if es.indices.exists(index=index):
-        log.debug("Removing elasticsearch Index: {}".format(index))
+        log.debug("Removing index: {}".format(index))
         es.indices.delete(index=index)
     else:
-        log.debug("Skip to removing elasticsearch Index, because it is not existing.")
+        log.debug("Skip to removing index, because it is not existing.")
 
     if exitAfterRemoval:
         log.debug("End program after removing index.")
@@ -152,16 +160,16 @@ def on_message(client, userdata, msg):
     log.debug("- userdata: {}".format(userdata))
 
     # prepare index
-    index = prepareElasticsearchIndex(topic2index[msg.topic]["elasticIndex"])
+    index = prepareIndexName(topic2index[msg.topic]["elasticIndex"])
 
     # check if index exist, if not trigger creation
     if not es.indices.exists(index=index):
-        createElasticsearchIndex(index, topic2index[msg.topic]["elasticBody"])
+        createIndex(index, topic2index[msg.topic]["elasticBody"])
 
     # parse message payload as JSON object
     PAYLOAD = json.loads(str(msg.payload.decode("utf-8")))
 
-    log.info("Add data to elasticsearch index: {}".format(index))
+    log.info("Add data to index: {}".format(index))
     res = es.index(index=index, body=json.dumps(PAYLOAD))
     log.debug("{}".format(res["result"]))
 
@@ -193,24 +201,92 @@ log.addHandler(log_handler)
 
 log.info("MQTT to Eleasticsearch processor v{} started".format(VERSION))
 
+isElasticsearch = False
+isOpensearch = False
 
 # set some defaults
-if "removeIndex" not in CONFIG:
+if "removeIndex" not in CONFIG.keys():
     CONFIG["removeIndex"] = False
-if "mqtt" not in CONFIG:
+if "mqtt" not in CONFIG.keys():
     log.error("MQTT specific configuration is missing in {}".format(ELASTICSEARCH_MAPPING_FILE))
-if "tls" not in CONFIG["mqtt"]:
+    sys.exit(1)
+if "tls" not in CONFIG["mqtt"].keys():
     CONFIG["mqtt"]["tls"] = False
-if "client_id" not in CONFIG["mqtt"]:
+if "client_id" not in CONFIG["mqtt"].keys():
     CONFIG["mqtt"]["client_id"] = None
-if "hostname_validation" not in CONFIG["mqtt"]:
+if "hostname_validation" not in CONFIG["mqtt"].keys():
     CONFIG["mqtt"]["hostname_validation"] = True
-if "protocol_version" not in CONFIG["mqtt"]:
+if "protocol_version" not in CONFIG["mqtt"].keys():
     CONFIG["mqtt"]["protocol_version"] = 3
+if "elasticsearch" in CONFIG.keys():
+    isElasticsearch = True
+    if "cluster" not in CONFIG["elasticsearch"].keys():
+        log.error("Cluster not defined in elasticsearch configuration!")
+        sys.exit(1)
+    if len(CONFIG["elasticsearch"]["cluster"]) < 1:
+        log.error("Cluster not defined in elasticsearch configuration!")
+        sys.exit(1)
+    if "api_key" not in CONFIG["elasticsearch"]:
+        CONFIG["elasticsearch"]["api_key"] = None
+if "opensearch" in CONFIG.keys():
+    isOpensearch = True
+    if "hosts" not in CONFIG["opensearch"].keys():
+        log.error("Hosts not defined in opensearch configuration!")
+        sys.exit(1)
+    if len(CONFIG["opensearch"]["hosts"]) < 1:
+        log.error("Hosts not defined in opensearch configuration!")
+        sys.exit(1)
+    else:
+        for i in range(len(CONFIG["opensearch"]["hosts"])):
+            if "host" not in CONFIG["opensearch"]["hosts"][i].keys():
+                log.error("Host not defined in opensearch hosts configuration!")
+                sys.exit(1)
+            if "port" not in CONFIG["opensearch"]["hosts"][i].keys():
+                CONFIG["opensearch"]["hosts"][i]["port"] = 9200
+    if "username" not in CONFIG["opensearch"].keys():
+        CONFIG["opensearch"]["username"] = None
+        CONFIG["opensearch"]["password"] = None
+    if "password" not in CONFIG["opensearch"].keys():
+        CONFIG["opensearch"]["username"] = None
+        CONFIG["opensearch"]["password"] = None
+    if "tls" not in CONFIG["opensearch"].keys():
+        CONFIG["opensearch"]["tls"] = False
+    if "verify_certs" not in CONFIG["opensearch"].keys():
+        CONFIG["opensearch"]["verify_certs"] = False
+    if "ca_certs_path" not in CONFIG["opensearch"].keys():
+        CONFIG["opensearch"]["ca_certs_path"] = "/etc/ssl/certs/ca-certificates.crt"
+
+# validate opensearch/elasticsearch
+if isOpensearch and isElasticsearch:
+    log.error("Elasticsearch and Opensearch can't be configured in parallel.")
+    sys.exit(1)
+if not isOpensearch and not isElasticsearch:
+    log.error("Elasticsearch or Opensearch needs to be configured.")
+    sys.exit(1)
+
 
 # ------------------------------------------------------------------------------
-es = Elasticsearch(CONFIG["elasticsearch"]["cluster"])
+es = None
+if isElasticsearch:
+    log.debug("Configure Elasticsearch connection")
+    es = Elasticsearch(CONFIG["elasticsearch"]["cluster"], api_key=CONFIG["elasticsearch"]["api_key"])
+if isOpensearch:
+    log.debug("Configure Opensearch connection")
+    auth = None
+    if CONFIG["opensearch"]["username"] and CONFIG["opensearch"]["password"]:
+        auth = (CONFIG["opensearch"]["username"], CONFIG["opensearch"]["password"])
+    es = OpenSearch(
+        hosts=CONFIG["opensearch"]["hosts"],
+        http_compress=True,  # enables gzip compression for request bodies
+        http_auth=auth,
+        use_ssl=CONFIG["opensearch"]["tls"],
+        verify_certs=CONFIG["opensearch"]["verify_certs"],
+        ssl_assert_hostname=CONFIG["opensearch"]["verify_certs"],
+        ssl_show_warn=False,
+        ca_certs=CONFIG["opensearch"]["ca_certs_path"],
+    )
 
+# ------------------------------------------------------------------------------
 log.debug("Configure MQTT client:")
 log.debug("- client_id={}".format(CONFIG["mqtt"]["client_id"]))
 log.debug("- transport=tcp")
@@ -245,11 +321,11 @@ if CONFIG["mqtt"]["tls"]:
     else:
         client.tls_insecure_set(True)
 
-# initial creation of elasticsearch index
+# initial creation of elasticsearch/opensearch index
 for key, value in topic2index.items():
     if CONFIG["removeIndex"]:
-        removeElasticsearchIndex(value["elasticIndex"], exitAfterRemoval=True)
-    createElasticsearchIndex(value["elasticIndex"], value["elasticBody"])
+        removeIndex(value["elasticIndex"], exitAfterRemoval=True)
+    createIndex(value["elasticIndex"], value["elasticBody"])
 
 # register MQTT callback functions
 client.on_connect = on_connect
