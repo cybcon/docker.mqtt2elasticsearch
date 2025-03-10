@@ -1,0 +1,43 @@
+{
+  "com/docker/hub/repositories/metrics": {
+    "elasticIndex": "dockerhub-repositories-metrics-{Y}-{m}",
+    "elasticBody": {
+      "settings": {
+        "index": {
+          "number_of_shards": 5,
+          "number_of_replicas": 0
+        }
+      },
+      "mappings": {
+        "properties": {
+          "_timestamp": { "type": "date" },
+          "user": { "type": "keyword" },
+          "name": { "type": "keyword" },
+          "repository_type": { "type": "keyword" },
+          "status": { "type": "integer" },
+          "status_description": { "type": "keyword" },
+          "description": { "type": "text" },
+          "is_private": { "type": "boolean" },
+          "is_automated": { "type": "boolean" },
+          "star_count": { "type": "integer" },
+          "pull_count": { "type": "integer" },
+          "last_updated": { "type": "date" },
+          "last_modified": { "type": "date" },
+          "date_registered": { "type": "date" },
+          "collaborator_count": { "type": "integer" },
+          "affiliation": { "type": "keyword" },
+          "hub_user": { "type": "keyword" },
+          "has_starred": { "type": "boolean" },
+          "full_description": { "type": "text" },
+          "permissions": { "type": "object" },
+          "media_types": { "type": "text" },
+          "content_types": { "type": "text" },
+          "categories": { "type": "object" },
+          "immutable_tags": { "type": "boolean" },
+          "immutable_tags_rules": { "type": "keyword" },
+          "storage_size": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
