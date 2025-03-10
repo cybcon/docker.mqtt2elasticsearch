@@ -18,7 +18,7 @@ import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
 from opensearchpy import OpenSearch
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:
