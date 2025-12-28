@@ -5,7 +5,7 @@ mqtt2elasticsearch.py - a tool that subscribes to mqtt topics and writes the
 Author: Michael Oberdorf
 Date: 2019-03-14
 Last modified by: Michael Oberdorf
-Last modified at: 2025-03-10
+Last modified at: 2025-12-28
 *************************************************************************** """
 import json
 import logging
@@ -18,7 +18,7 @@ import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
 from opensearchpy import OpenSearch
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:
