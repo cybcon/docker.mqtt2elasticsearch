@@ -1,7 +1,7 @@
 FROM alpine:3.23.2
 
 LABEL maintainer="Michael Oberdorf IT-Consulting <info@oberdorf-itc.de>"
-LABEL site.local.program.version="1.2.2"
+LABEL site.local.program.version="1.3.0"
 
 ENV CONFIG_FILE=/app/etc/mqtt2elasticsearch.json \
     ELASTICSEARCH_MAPPING_FILE=/app/etc/mqtt2elasticsearch-mappings.json \
