@@ -23,7 +23,8 @@ Container image: [DockerHub](https://hub.docker.com/repository/docker/oitc/mqtt2
 
 # Supported tags and respective `Dockerfile` links
 
-* [`latest`, `1.2.2`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.2.2/Dockerfile)
+* [`latest`, `1.3.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.3.0/Dockerfile)
+* [`1.2.2`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.2.2/Dockerfile)
 * [`1.2.1`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.2.1/Dockerfile)
 * [`1.1.1`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.1/Dockerfile)
 * [`1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.0/Dockerfile)
@@ -268,7 +269,7 @@ I would appreciate a small donation to support the further development of my ope
 
 # License
 
-Copyright (c) 2023-2025 Michael Oberdorf IT-Consulting
+Copyright (c) 2023-2026 Michael Oberdorf IT-Consulting
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

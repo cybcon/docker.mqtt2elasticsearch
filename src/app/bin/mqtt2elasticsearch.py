@@ -5,7 +5,7 @@ mqtt2elasticsearch.py - a tool that subscribes to mqtt topics and writes the
 Author: Michael Oberdorf
 Date: 2019-03-14
 Last modified by: Michael Oberdorf
-Last modified at: 2025-12-28
+Last modified at: 2026-01-10
 *************************************************************************** """
 import json
 import logging
@@ -18,7 +18,7 @@ import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
 from opensearchpy import OpenSearch
 
-VERSION = "1.2.2"
+VERSION = "1.3.0"
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:
@@ -159,12 +159,25 @@ def on_message(client, userdata, msg):
     log.debug("MQTT message received:")
     log.debug("- userdata: {}".format(userdata))
 
+    # Topic wildcard support
+    topic2index_key = msg.topic
+    if msg.topic not in topic2index.keys():
+        for topic in topic2index.keys():
+            if mqtt.topic_matches_sub(topic, msg.topic):
+                topic2index_key = topic
+                log.debug("- matched topic: {}".format(topic2index_key))
+                break
+
+    if topic2index_key not in topic2index.keys():
+        log.warning("No mapping found for topic: {}, skipping message.".format(msg.topic))
+        return None
+
     # prepare index
-    index = prepareIndexName(topic2index[msg.topic]["elasticIndex"])
+    index = prepareIndexName(topic2index[topic2index_key]["elasticIndex"])
 
     # check if index exist, if not trigger creation
     if not es.indices.exists(index=index):
-        createIndex(index, topic2index[msg.topic]["elasticBody"])
+        createIndex(index, topic2index[topic2index_key]["elasticBody"])
 
     # parse message payload as JSON object
     PAYLOAD = json.loads(str(msg.payload.decode("utf-8")))
