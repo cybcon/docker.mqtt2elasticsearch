@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
-""" ***************************************************************************
+"""***************************************************************************
 mqtt2elasticsearch.py - a tool that subscribes to mqtt topics and writes the
   messages to an Elasticsearch or to an Opensearch database
 Author: Michael Oberdorf
 Date: 2019-03-14
 Last modified by: Michael Oberdorf
-Last modified at: 2026-01-10
-*************************************************************************** """
+Last modified at: 2026-06-28
+***************************************************************************"""
+
 import json
 import logging
 import os
@@ -18,7 +18,7 @@ import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
 from opensearchpy import OpenSearch
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:

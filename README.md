@@ -21,27 +21,30 @@ Container image: [DockerHub](https://hub.docker.com/repository/docker/oitc/mqtt2
 [![][docker-stars-shield]][docker-stars-link]
 [![][docker-size-shield]][docker-size-link]
 
-# Supported tags and respective `Dockerfile` links
+## Supported tags and respective `Dockerfile` links
 
-* [`latest`, `1.3.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.3.0/Dockerfile)
+* [`latest`, `1.4.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.4.0/Dockerfile)
+* [`1.3.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.3.0/Dockerfile)
 * [`1.2.2`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.2.2/Dockerfile)
 * [`1.2.1`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.2.1/Dockerfile)
 * [`1.1.1`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.1/Dockerfile)
 * [`1.1.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.1.0/Dockerfile)
 * [`1.0.0`](https://github.com/cybcon/docker.mqtt2elasticsearch/blob/v1.0.0/Dockerfile)
 
-# Summary
+## Summary
 
 The container image is based on Alpine Linux with python3 interpreter.
 The tool is written in python and connects to a MQTT server and subscripes to one ore more topics.
 All messages in that topic will be pushed to an elasticsearch or opensearch server.
 
-# Prerequisites to run the docker container
+## Prerequisites to run the docker container
+
 1. You need a MQTT server to read the data from the topics.
 2. You need an elasticsearch v8 / or opensearch v2 database to store the data inside.
 
-# Configuration
-## Container configuration
+## Configuration
+
+### Container configuration
 
 The container grab some configuration via environment variables.
 
@@ -50,15 +53,13 @@ The container grab some configuration via environment variables.
 | `CONFIG_FILE`                | The general configuration file that contains the connection parameters to MQTT and Elasticsearch | **OPTIONAL** | `/app/etc/mqtt2elasticsearch.json`          |
 | `ELASTICSEARCH_MAPPING_FILE` | The MQTT topics and the associated Elasticsearch index configuration for the messages.           | **OPTIONAL** | `/app/etc/mqtt2elasticsearch-mappings.json` |
 
-
-
-## General configuration file
+### General configuration file
 
 The path and filename to the general configuration file can be set via environment variable `CONFIG_FILE`. By default, the script will use `/app/etc/mqtt2elasticsearch.json`.
 
 Inside this file we need to configure the Elasticsearch (or Opensearch) and MQTT server connection parameters.
 
-### Example with Elasticsearch
+#### Example with Elasticsearch
 
 ```json
 {
@@ -80,7 +81,7 @@ Inside this file we need to configure the Elasticsearch (or Opensearch) and MQTT
 }
 ```
 
-### Example with Opensearch
+#### Example with Opensearch
 
 ```json
 {
@@ -111,8 +112,7 @@ Inside this file we need to configure the Elasticsearch (or Opensearch) and MQTT
 }
 ```
 
-
-### Field description
+#### Field description
 
 | Field                      | Type    | Description                                                                                                      |
 |----------------------------|---------|------------------------------------------------------------------------------------------------------------------|
@@ -140,15 +140,14 @@ Inside this file we need to configure the Elasticsearch (or Opensearch) and MQTT
 | `mqtt.hostname_validation` | Boolean | Validate the hostname from the servercertificate or not.                                                         |
 | `mqtt.protocol_version`    | Integer | The MQTT protocol version. Can be 3 (for MQTTv311) or 5 (for MQTTv5).                                            |
 
-
-##  Elasticsearch/Opensearch index configuration file
+###  Elasticsearch/Opensearch index configuration file
 
 The path and filename to the Elasticsearch/Opensearch index configuration file can be set via environment variable `ELASTICSEARCH_MAPPING_FILE`.
 By default, the script will use `/app/etc/mqtt2elasticsearch-mappings.json`.
 
 Inside this file we need to configure the MQTT topic and the associated Elasticsearch/Opensearch index with it's configuration.
 
-### Example
+#### Example
 
 This is  minimal example. The JSON file contains the MQTT topic as **key**. Every topic contains the associated Elasticsearch/Opensearch index and an optional index configuration.
 You can use placeholder inside the index name. Following will be translated on the fly:
@@ -170,8 +169,7 @@ Full blown examples can be found here:
 - [speedtest2mqtt-elasticsearch-mapping.json](./examples/speedtest2mqtt-elasticsearch-mapping.json).
 - [dockerhub-stats-opensearch-mapping.json](./examples/dockerhub-stats-opensearch-mapping.json).
 
-
-### Field description
+#### Field description
 
 | Field                      | Type   | Description |
 |----------------------------|--------|-------------|
@@ -180,17 +178,15 @@ Full blown examples can be found here:
 | *\<topic\>*.`elasticBody`  | Object | The Elastic index configuration as documented here: [Create index API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) |
 
 
-# Running the container image
+## Running the container image
 
 ```
 docker run --rm oitc/mqtt2elasticsearch:latest
 ```
 
-# Docker compose configuration
+## Docker compose configuration
 
 ```yaml
-version: '3.8'
-
 services:
   elasticsearch:
     restart: always
@@ -232,7 +228,7 @@ services:
 
   mqtt2elasticsearch:
     restart: always
-    image: oitc/mqtt2elasticsearch
+    image: oitc/mqtt2elasticsearch:latest
     container_name: mqtt2elasticsearch
     hostname: mqtt2elasticsearch
     volumes:
@@ -261,13 +257,12 @@ secrets:
     file: /srv/docker/speedtest2mqtt/secrets/mqtt_password
 ```
 
-# Donate
+## Donate
 I would appreciate a small donation to support the further development of my open source projects.
 
-<a href="https://www.paypal.com/donate/?hosted_button_id=BHGJGGUS6RH44" target="_blank"><img src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png" alt="Donate with PayPal" width="200px"></a>
+[![Donate with PayPal][donate-paypal-button]][donate-paypal-link]
 
-
-# License
+## License
 
 Copyright (c) 2023-2026 Michael Oberdorf IT-Consulting
 
@@ -298,6 +293,8 @@ SOFTWARE.
 [docker-size-shield]: https://img.shields.io/docker/image-size/oitc/mqtt2elasticsearch?color=369eff&labelColor=black&style=flat-square
 [docker-stars-link]: https://hub.docker.com/r/oitc/mqtt2elasticsearch
 [docker-stars-shield]: https://img.shields.io/docker/stars/oitc/mqtt2elasticsearch?color=45cc11&labelColor=black&style=flat-square
+[donate-paypal-button]: https://raw.githubusercontent.com/cybcon/paypal-donate-button/refs/heads/master/paypal-donate-button_200x77.png
+[donate-paypal-link]: https://www.paypal.com/donate/?hosted_button_id=BHGJGGUS6RH44
 [github-action-release-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/release-from-label.yaml
 [github-action-release-shield]: https://img.shields.io/github/actions/workflow/status/cybcon/docker.mqtt2elasticsearch/release-from-label.yaml?label=release&labelColor=black&logo=githubactions&logoColor=white&style=flat-square
 [github-action-test-link]: https://github.com/cybcon/docker.mqtt2elasticsearch/actions/workflows/container-image-build-validation.yaml

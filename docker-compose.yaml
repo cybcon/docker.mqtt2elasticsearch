@@ -41,7 +41,7 @@ services:
 
   mqtt2elasticsearch:
     restart: always
-    image: oitc/mqtt2elasticsearch
+    image: oitc/mqtt2elasticsearch:latest
     container_name: mqtt2elasticsearch
     hostname: mqtt2elasticsearch
     depends_on:
