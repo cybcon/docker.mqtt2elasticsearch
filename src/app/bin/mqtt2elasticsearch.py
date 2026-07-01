@@ -1,24 +1,29 @@
-# -*- coding: utf-8 -*-
-""" ***************************************************************************
+"""
 mqtt2elasticsearch.py - a tool that subscribes to mqtt topics and writes the
   messages to an Elasticsearch or to an Opensearch database
 Author: Michael Oberdorf
 Date: 2019-03-14
 Last modified by: Michael Oberdorf
-Last modified at: 2026-01-10
-*************************************************************************** """
+Last modified at: 2026-07-01
+"""
+
 import json
 import logging
 import os
 import ssl
 import sys
+import uuid
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
 from elasticsearch import Elasticsearch
 from opensearchpy import OpenSearch
 
-VERSION = "1.3.0"
+__author__ = "Michael Oberdorf <info@oberdorf-itc.de>"
+__status__ = "production"
+__date__ = "2026-07-01"
+__version_info__ = ("1", "4", "0")
+__version__ = ".".join(__version_info__)
 
 CONFIG_FILE = "/app/etc/mqtt2elasticsearch.json"
 if "CONFIG_FILE" in os.environ:
@@ -32,12 +37,292 @@ if "ELASTICSEARCH_MAPPING_FILE" in os.environ:
 with open(ELASTICSEARCH_MAPPING_FILE) as f:
     topic2index = json.load(f)
 
-
 """
 ###############################################################################
 # F U N C T I O N S
 ###############################################################################
 """
+
+
+def __initialize_logger(severity: int = logging.INFO) -> logging.Logger:
+    """
+    Initialize the logger with the given severity level.
+
+    :param severity int: The optional severity level for the logger. (default: 20 (INFO))
+    :return logging.RootLogger: The initialized logger.
+    :raise ValueError: If the severity level is not valid.
+    :raise TypeError: If the severity level is not an integer.
+    :raise Exception: If the logger cannot be initialized.
+    """
+    valid_severity = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
+    if severity not in valid_severity:
+        raise ValueError(f"Invalid severity level: {severity}. Must be one of {valid_severity}.")
+
+    log = logging.getLogger()
+    log_handler = logging.StreamHandler(sys.stdout)
+
+    log.setLevel(severity)
+    log_handler.setLevel(severity)
+    log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    log_handler.setFormatter(log_formatter)
+    log.addHandler(log_handler)
+
+    return log
+
+
+def __validate_configuration() -> tuple[bool, bool]:
+    """
+    Validate the configuration loaded from the JSON file.
+
+    :return tuple[bool, bool]: A tuple containing boolean values indicating whether Elasticsearch and Opensearch are configured.
+    :raise ValueError: If the configuration is not valid.
+    :raise Exception: If the configuration cannot be validated.
+    """
+    isElasticsearch = False
+    isOpensearch = False
+
+    if "mqtt" not in CONFIG:
+        raise ValueError(f"MQTT specific configuration is missing in {ELASTICSEARCH_MAPPING_FILE}")
+    if "elasticsearch" not in CONFIG and "opensearch" not in CONFIG:
+        raise ValueError("Elasticsearch or Opensearch needs to be configured.")
+    if "elasticsearch" in CONFIG and "opensearch" in CONFIG:
+        raise ValueError("Elasticsearch and Opensearch can't be configured in parallel.")
+
+    # set some defaults
+    if "removeIndex" not in CONFIG.keys():
+        CONFIG["removeIndex"] = False
+    if "tls" not in CONFIG["mqtt"].keys():
+        CONFIG["mqtt"]["tls"] = False
+    if "clean_session" not in CONFIG["mqtt"].keys():
+        CONFIG["mqtt"]["clean_session"] = False
+    if "client_id" not in CONFIG["mqtt"].keys():
+        CONFIG["mqtt"]["client_id"] = uuid.uuid4().hex
+    if "hostname_validation" not in CONFIG["mqtt"].keys():
+        CONFIG["mqtt"]["hostname_validation"] = True
+    if "protocol_version" not in CONFIG["mqtt"].keys():
+        CONFIG["mqtt"]["protocol_version"] = 3
+    if "elasticsearch" in CONFIG.keys():
+        isElasticsearch = True
+        if "cluster" not in CONFIG["elasticsearch"].keys():
+            log.error("Cluster not defined in elasticsearch configuration!")
+            sys.exit(1)
+        if len(CONFIG["elasticsearch"]["cluster"]) < 1:
+            log.error("Cluster not defined in elasticsearch configuration!")
+            sys.exit(1)
+        if "api_key" not in CONFIG["elasticsearch"]:
+            CONFIG["elasticsearch"]["api_key"] = None
+    if "opensearch" in CONFIG.keys():
+        isOpensearch = True
+        if "hosts" not in CONFIG["opensearch"].keys():
+            log.error("Hosts not defined in opensearch configuration!")
+            sys.exit(1)
+        if len(CONFIG["opensearch"]["hosts"]) < 1:
+            log.error("Hosts not defined in opensearch configuration!")
+            sys.exit(1)
+        else:
+            for i in range(len(CONFIG["opensearch"]["hosts"])):
+                if "host" not in CONFIG["opensearch"]["hosts"][i].keys():
+                    log.error("Host not defined in opensearch hosts configuration!")
+                    sys.exit(1)
+                if "port" not in CONFIG["opensearch"]["hosts"][i].keys():
+                    CONFIG["opensearch"]["hosts"][i]["port"] = 9200
+        if "username" not in CONFIG["opensearch"].keys():
+            CONFIG["opensearch"]["username"] = None
+            CONFIG["opensearch"]["password"] = None
+        if "password" not in CONFIG["opensearch"].keys():
+            CONFIG["opensearch"]["username"] = None
+            CONFIG["opensearch"]["password"] = None
+        if "tls" not in CONFIG["opensearch"].keys():
+            CONFIG["opensearch"]["tls"] = False
+        if "verify_certs" not in CONFIG["opensearch"].keys():
+            CONFIG["opensearch"]["verify_certs"] = False
+        if "ca_certs_path" not in CONFIG["opensearch"].keys():
+            CONFIG["opensearch"]["ca_certs_path"] = "/etc/ssl/certs/ca-certificates.crt"
+        CONFIG["thisismytest"] = "thisismytest"
+
+    return isElasticsearch, isOpensearch
+
+
+def __initialize_mqtt_client() -> mqtt.Client:
+    """
+    Initialize the MQTT client with the given configuration from environment.
+
+    :return mqtt.Client: The initialized MQTT client.
+    :raise ValueError: If the MQTT client configuration is not valid.
+    :raise Exception: If the MQTT client cannot be initialized.
+    """
+
+    if CONFIG["mqtt"]["client_id"] is not None:
+        log.debug(f"Use MQTT client ID: {CONFIG['mqtt']['client_id']}")
+
+    if CONFIG["mqtt"]["protocol_version"] == "5":
+        log.debug("MQTT protocol version 5")
+        client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id=CONFIG["mqtt"]["client_id"],
+            userdata=None,
+            transport="tcp",
+            protocol=mqtt.MQTTv5,
+        )
+    else:
+        log.debug("MQTT protocol version 3.1.1")
+        client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id=CONFIG["mqtt"]["client_id"],
+            clean_session=True,
+            userdata=None,
+            transport="tcp",
+            protocol=mqtt.MQTTv311,
+        )
+
+    # configure TLS
+    if CONFIG["mqtt"]["tls"]:
+        log.debug("Configure MQTT connection to use TLS encryption.")
+
+        __ca_cert_file__ = "/etc/ssl/certs/ca-certificates.crt"
+        if os.environ.get("REQUESTS_CA_BUNDLE", None) is not None:
+            __ca_cert_file__ = os.environ.get("REQUESTS_CA_BUNDLE")
+
+        if not CONFIG["mqtt"]["hostname_validation"]:
+            log.debug("Configure MQTT connection to use TLS with insecure mode.")
+            client.tls_set(
+                ca_certs=__ca_cert_file__,
+                cert_reqs=ssl.CERT_NONE,
+                tls_version=ssl.PROTOCOL_TLSv1_2,
+                ciphers=None,
+            )
+            client.tls_insecure_set(True)
+        else:
+            log.debug("Configure MQTT connection to use TLS with secure mode.")
+            client.tls_set(
+                ca_certs=__ca_cert_file__,
+                cert_reqs=ssl.CERT_REQUIRED,
+                tls_version=ssl.PROTOCOL_TLSv1_2,
+                ciphers=None,
+            )
+            client.tls_insecure_set(False)
+
+    # configure authentication
+    if (
+        "user" in CONFIG["mqtt"]
+        and CONFIG["mqtt"]["user"] != ""
+        and "password" in CONFIG["mqtt"]
+        and CONFIG["mqtt"]["password"] != ""
+    ):
+        log.debug(f"Set username ({CONFIG['mqtt']['user']}) and password for MQTT connection")
+        client.username_pw_set(CONFIG["mqtt"]["user"], CONFIG["mqtt"]["password"])
+
+    # register callback functions
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_subscribe = on_subscribe
+
+    return client
+
+
+def on_connect(client: mqtt.Client, userdata: dict, flags: dict, rc: int, properties: mqtt.Properties) -> None:
+    """
+    on_connect - The MQTT callback for when the client receives a CONNACK response from the server.
+
+    :param client: The object of the MQTT connection
+    :type client: paho.mqtt.client.Client
+    :param userdata: the user data of the MQTT connection
+    :type userdata: dict
+    :param flags: connection parameters
+    :type flags: dict
+    :param rc: the return code
+    :type rc: int
+    :return None
+    """
+    log.debug(f"MQTT client connected with result code {rc}")
+    log.debug(f"MQTT connection flags: {flags}")
+    log.debug(f"MQTT connection userdata: {userdata}")
+    log.debug(f"MQTT connection properties: {properties}")
+
+    # check for return code
+    if rc != 0:
+        log.error(f"Error in connecting to MQTT Server, RC={rc}")
+        sys.exit(1)
+
+    # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
+    for topic in topic2index.keys():
+        log.debug(f"MQTT client subscribing to topic: {topic}")
+        client.subscribe(topic)
+
+    return None
+
+
+def on_subscribe(
+    client: mqtt.Client, userdata: dict, mid: int, reason_code_list: list, properties: mqtt.Properties
+) -> None:
+    """
+    on_subscribe - The MQTT callback for when the client receives a SUBACK response from the server.
+
+    :param client: The object of the MQTT connection
+    :type client: paho.mqtt.client.Client
+    :param userdata: the user data of the MQTT connection
+    :type userdata: dict
+    :param mid: the message ID of the subscribe request
+    :type mid: int
+    :param reason_code_list: the list of reason codes for the subscribe request
+    :type reason_code_list: list
+    :param properties: the MQTT properties of the subscribe response
+    :type properties: paho.mqtt.client.MQTTProperties
+    :return None
+    """
+    log.debug(
+        f"MQTT client received SUBACK for message ID {mid} with reason codes {reason_code_list} and properties {properties}"
+    )
+    log.debug(f"MQTT client userdata: {userdata}")
+    if reason_code_list[0].is_failure:
+        log.error(f"Broker rejected you subscription: {reason_code_list[0]}")
+    else:
+        log.debug(f"Broker granted the following QoS: {reason_code_list[0].value}")
+
+
+def on_message(client: mqtt.Client, userdata: dict, msg: mqtt.MQTTMessage) -> None:
+    """
+    on_message - The MQTT callback for when a PUBLISH message is received from the server.
+
+    :param client: the object of the MQTT connection
+    :type client: paho.mqtt.client.Client
+    :param userdata: the user data of the MQTT connection
+    :type userdata: dict
+    :param msg: the object of the MQTT message received
+    :type msg: paho.mqtt.client.MQTTMessage
+    :return None
+    """
+    log.debug(f"MQTT message received on topic {msg.topic} with QoS {msg.qos} and retain flag {msg.retain}")
+
+    # Topic wildcard support
+    topic2index_key = msg.topic
+    if msg.topic not in topic2index.keys():
+        for topic in topic2index.keys():
+            if mqtt.topic_matches_sub(topic, msg.topic):
+                topic2index_key = topic
+                log.debug(f"- matched topic: {topic2index_key}")
+                break
+
+    if topic2index_key not in topic2index.keys():
+        log.warning(f"No mapping found for topic: {msg.topic}, skipping message.")
+        return None
+
+    # prepare index
+    index = prepareIndexName(topic2index[topic2index_key]["elasticIndex"])
+
+    # check if index exist, if not trigger creation
+    if not es.indices.exists(index=index):
+        createIndex(index, topic2index[topic2index_key]["elasticBody"])
+
+    # parse message payload as JSON object
+    PAYLOAD = json.loads(str(msg.payload.decode("utf-8")))
+    log.debug(f"MQTT message payload: {PAYLOAD}")
+
+    log.info(f"Add data to index: {index}")
+    res = es.index(index=index, body=json.dumps(PAYLOAD))
+    log.debug(f"Result: {res['result']}")
+
+    return None
 
 
 def prepareIndexName(index: str) -> str:
@@ -114,247 +399,76 @@ def removeIndex(index: str, exitAfterRemoval: bool = True):
         return None
 
 
-def on_connect(client, userdata, flags, rc):
-    """
-    on_connect
-    @desc: Function call when (re-)connecting to the MQTT broker. We subscribe
-      here to the relevant topics.
-    @param client, paho.mqtt.client.Client(): The object of the MQTT connection
-    @param userdata, any: user defined data of any type that is passed as the userdata
-       parameter to callbacks. Defined within the Client() constructor.
-    @param flags, dict(): JsonString, connection parameters
-    @param rc, int(): the return code
-    @return: None
-    """
-
-    log.debug("After connecting to MQTT server:")
-    log.debug("- userdata: {}".format(userdata))
-    log.debug("- flags: {}".format(flags))
-    log.debug("- rc: {}".format(rc))
-
-    # check for return code
-    if rc != 0:
-        log.error("Error in connecting to MQTT Server, RC={}".format(rc))
-        sys.exit(1)
-
-    # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
-    for topic in topic2index.keys():
-        log.debug("Subscribe to MQTT topic: {}".format(topic))
-        client.subscribe(topic)
-
-    return None
-
-
-def on_message(client, userdata, msg):
-    """
-    on_message
-    @desc: The MQTT callback for when a PUBLISH message is received from the server.
-    @param client, paho.mqtt.client.Client(): The object of the MQTT connection
-    @param userdata, any: user defined data of any type that is passed as the userdata
-       parameter to callbacks. Defined within the Client() constructor.
-    @param msg, paho.mqtt.client.MQTTMessage(): The object of the MQTT message received
-    @return: None
-    """
-
-    log.debug("MQTT message received:")
-    log.debug("- userdata: {}".format(userdata))
-
-    # Topic wildcard support
-    topic2index_key = msg.topic
-    if msg.topic not in topic2index.keys():
-        for topic in topic2index.keys():
-            if mqtt.topic_matches_sub(topic, msg.topic):
-                topic2index_key = topic
-                log.debug("- matched topic: {}".format(topic2index_key))
-                break
-
-    if topic2index_key not in topic2index.keys():
-        log.warning("No mapping found for topic: {}, skipping message.".format(msg.topic))
-        return None
-
-    # prepare index
-    index = prepareIndexName(topic2index[topic2index_key]["elasticIndex"])
-
-    # check if index exist, if not trigger creation
-    if not es.indices.exists(index=index):
-        createIndex(index, topic2index[topic2index_key]["elasticBody"])
-
-    # parse message payload as JSON object
-    PAYLOAD = json.loads(str(msg.payload.decode("utf-8")))
-
-    log.info("Add data to index: {}".format(index))
-    res = es.index(index=index, body=json.dumps(PAYLOAD))
-    log.debug("{}".format(res["result"]))
-
-    return None
-
-
 """
 ###############################################################################
 # M A I N
 ###############################################################################
 """
-
-# initialize logger
-log = logging.getLogger()
-log_handler = logging.StreamHandler(sys.stdout)
-if "DEBUG" not in CONFIG:
-    log.setLevel(logging.INFO)
-    log_handler.setLevel(logging.INFO)
-else:
-    if CONFIG["DEBUG"]:
-        log.setLevel(logging.DEBUG)
-        log_handler.setLevel(logging.DEBUG)
+if __name__ == "__main__":
+    # initialize logger
+    if "DEBUG" not in CONFIG:
+        log = __initialize_logger(logging.INFO)
     else:
-        log.setLevel(logging.INFO)
-        log_handler.setLevel(logging.INFO)
-log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-log_handler.setFormatter(log_formatter)
-log.addHandler(log_handler)
+        if CONFIG["DEBUG"]:
+            log = __initialize_logger(logging.DEBUG)
+        else:
+            log = __initialize_logger(logging.INFO)
+    log.info(f"MQTT to Eleasticsearch processor v{__version__} started")
 
-log.info("MQTT to Eleasticsearch processor v{} started".format(VERSION))
+    # ------------------------------------------------------------------------------
+    # validate configuration
+    isElasticsearch, isOpensearch = __validate_configuration()
 
-isElasticsearch = False
-isOpensearch = False
-
-# set some defaults
-if "removeIndex" not in CONFIG.keys():
-    CONFIG["removeIndex"] = False
-if "mqtt" not in CONFIG.keys():
-    log.error("MQTT specific configuration is missing in {}".format(ELASTICSEARCH_MAPPING_FILE))
-    sys.exit(1)
-if "tls" not in CONFIG["mqtt"].keys():
-    CONFIG["mqtt"]["tls"] = False
-if "client_id" not in CONFIG["mqtt"].keys():
-    CONFIG["mqtt"]["client_id"] = None
-if "hostname_validation" not in CONFIG["mqtt"].keys():
-    CONFIG["mqtt"]["hostname_validation"] = True
-if "protocol_version" not in CONFIG["mqtt"].keys():
-    CONFIG["mqtt"]["protocol_version"] = 3
-if "elasticsearch" in CONFIG.keys():
-    isElasticsearch = True
-    if "cluster" not in CONFIG["elasticsearch"].keys():
-        log.error("Cluster not defined in elasticsearch configuration!")
+    # ------------------------------------------------------------------------------
+    # initialize Elasticsearch/Opensearch connection
+    es = None
+    if isElasticsearch:
+        log.debug("Configure Elasticsearch connection")
+        es = Elasticsearch(CONFIG["elasticsearch"]["cluster"], api_key=CONFIG["elasticsearch"]["api_key"])
+    if isOpensearch:
+        log.debug("Configure Opensearch connection")
+        auth = None
+        if CONFIG["opensearch"]["username"] and CONFIG["opensearch"]["password"]:
+            auth = (CONFIG["opensearch"]["username"], CONFIG["opensearch"]["password"])
+        es = OpenSearch(
+            hosts=CONFIG["opensearch"]["hosts"],
+            http_compress=True,  # enables gzip compression for request bodies
+            http_auth=auth,
+            use_ssl=CONFIG["opensearch"]["tls"],
+            verify_certs=CONFIG["opensearch"]["verify_certs"],
+            ssl_assert_hostname=CONFIG["opensearch"]["verify_certs"],
+            ssl_show_warn=False,
+            ca_certs=CONFIG["opensearch"]["ca_certs_path"],
+        )
+    if not es:
+        log.error("No Elasticsearch or Opensearch connection configured!")
         sys.exit(1)
-    if len(CONFIG["elasticsearch"]["cluster"]) < 1:
-        log.error("Cluster not defined in elasticsearch configuration!")
+
+    # initial creation of elasticsearch/opensearch index
+    for key, value in topic2index.items():
+        if CONFIG["removeIndex"]:
+            removeIndex(value["elasticIndex"], exitAfterRemoval=True)
+        createIndex(value["elasticIndex"], value["elasticBody"])
+
+    # ------------------------------------------------------------------------------
+    # Initialize MQTT connection
+    client = __initialize_mqtt_client()
+    # connect to MQTT server
+    log.debug("Connecting to MQTT server {}:{}".format(CONFIG["mqtt"]["server"], CONFIG["mqtt"]["port"]))
+    try:
+        client.connect(CONFIG["mqtt"]["server"], CONFIG["mqtt"]["port"], 60)
+    except ssl.SSLCertVerificationError as e:
+        log.error("SSL certificate verification error: {}".format(e))
         sys.exit(1)
-    if "api_key" not in CONFIG["elasticsearch"]:
-        CONFIG["elasticsearch"]["api_key"] = None
-if "opensearch" in CONFIG.keys():
-    isOpensearch = True
-    if "hosts" not in CONFIG["opensearch"].keys():
-        log.error("Hosts not defined in opensearch configuration!")
-        sys.exit(1)
-    if len(CONFIG["opensearch"]["hosts"]) < 1:
-        log.error("Hosts not defined in opensearch configuration!")
-        sys.exit(1)
-    else:
-        for i in range(len(CONFIG["opensearch"]["hosts"])):
-            if "host" not in CONFIG["opensearch"]["hosts"][i].keys():
-                log.error("Host not defined in opensearch hosts configuration!")
-                sys.exit(1)
-            if "port" not in CONFIG["opensearch"]["hosts"][i].keys():
-                CONFIG["opensearch"]["hosts"][i]["port"] = 9200
-    if "username" not in CONFIG["opensearch"].keys():
-        CONFIG["opensearch"]["username"] = None
-        CONFIG["opensearch"]["password"] = None
-    if "password" not in CONFIG["opensearch"].keys():
-        CONFIG["opensearch"]["username"] = None
-        CONFIG["opensearch"]["password"] = None
-    if "tls" not in CONFIG["opensearch"].keys():
-        CONFIG["opensearch"]["tls"] = False
-    if "verify_certs" not in CONFIG["opensearch"].keys():
-        CONFIG["opensearch"]["verify_certs"] = False
-    if "ca_certs_path" not in CONFIG["opensearch"].keys():
-        CONFIG["opensearch"]["ca_certs_path"] = "/etc/ssl/certs/ca-certificates.crt"
+    log.debug("Connected to MQTT server")
 
-# validate opensearch/elasticsearch
-if isOpensearch and isElasticsearch:
-    log.error("Elasticsearch and Opensearch can't be configured in parallel.")
-    sys.exit(1)
-if not isOpensearch and not isElasticsearch:
-    log.error("Elasticsearch or Opensearch needs to be configured.")
-    sys.exit(1)
+    # Blocking call that processes network traffic, dispatches callbacks and
+    # handles reconnecting.
+    # Other loop*() functions are available that give a threaded interface and a
+    # manual interface.
+    client.loop_forever()
 
+    client.disconnect()
 
-# ------------------------------------------------------------------------------
-es = None
-if isElasticsearch:
-    log.debug("Configure Elasticsearch connection")
-    es = Elasticsearch(CONFIG["elasticsearch"]["cluster"], api_key=CONFIG["elasticsearch"]["api_key"])
-if isOpensearch:
-    log.debug("Configure Opensearch connection")
-    auth = None
-    if CONFIG["opensearch"]["username"] and CONFIG["opensearch"]["password"]:
-        auth = (CONFIG["opensearch"]["username"], CONFIG["opensearch"]["password"])
-    es = OpenSearch(
-        hosts=CONFIG["opensearch"]["hosts"],
-        http_compress=True,  # enables gzip compression for request bodies
-        http_auth=auth,
-        use_ssl=CONFIG["opensearch"]["tls"],
-        verify_certs=CONFIG["opensearch"]["verify_certs"],
-        ssl_assert_hostname=CONFIG["opensearch"]["verify_certs"],
-        ssl_show_warn=False,
-        ca_certs=CONFIG["opensearch"]["ca_certs_path"],
-    )
-
-# ------------------------------------------------------------------------------
-log.debug("Configure MQTT client:")
-log.debug("- client_id={}".format(CONFIG["mqtt"]["client_id"]))
-log.debug("- transport=tcp")
-if CONFIG["mqtt"]["protocol_version"] == 5:
-    log.debug("- protocol=MQTTv5")
-    client = mqtt.Client(client_id=CONFIG["mqtt"]["client_id"], userdata=None, transport="tcp", protocol=mqtt.MQTTv5)
-else:
-    log.debug("- clean_session=True")
-    log.debug("- protocol=MQTTv5")
-    client = mqtt.Client(
-        client_id=CONFIG["mqtt"]["client_id"],
-        clean_session=True,
-        userdata=None,
-        transport="tcp",
-        protocol=mqtt.MQTTv311,
-    )
-
-if (
-    "user" in CONFIG["mqtt"]
-    and CONFIG["mqtt"]["user"] != ""
-    and "password" in CONFIG["mqtt"]
-    and CONFIG["mqtt"]["password"] != ""
-):
-    log.debug("Set username ({}) and password for MQTT connection".format(CONFIG["mqtt"]["user"]))
-    client.username_pw_set(CONFIG["mqtt"]["user"], password=CONFIG["mqtt"]["password"])
-
-if CONFIG["mqtt"]["tls"]:
-    log.debug("MQTT connection is TLS encrypted")
-    client.tls_set(ca_certs=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS, ciphers=None)
-    if CONFIG["mqtt"]["hostname_validation"]:
-        client.tls_insecure_set(False)
-    else:
-        client.tls_insecure_set(True)
-
-# initial creation of elasticsearch/opensearch index
-for key, value in topic2index.items():
-    if CONFIG["removeIndex"]:
-        removeIndex(value["elasticIndex"], exitAfterRemoval=True)
-    createIndex(value["elasticIndex"], value["elasticBody"])
-
-# register MQTT callback functions
-client.on_connect = on_connect
-client.on_message = on_message
-
-# connect to MQTT server
-log.debug("Connecting to MQTT server {}:{}".format(CONFIG["mqtt"]["server"], CONFIG["mqtt"]["port"]))
-client.connect(CONFIG["mqtt"]["server"], CONFIG["mqtt"]["port"], 60)
-
-# Blocking call that processes network traffic, dispatches callbacks and
-# handles reconnecting.
-# Other loop*() functions are available that give a threaded interface and a
-# manual interface.
-client.loop_forever()
-
-client.disconnect()
-
-log.info("MQTT to Eleasticsearch processor v{} stopped".format(VERSION))
-sys.exit()
+    log.info(f"MQTT to Eleasticsearch processor v{__version__} stopped")
+    sys.exit()
